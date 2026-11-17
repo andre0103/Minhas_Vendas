@@ -20,12 +20,32 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Preparar pasta www
+        run: |
+          mkdir -p www
+          if [ ! -f www/index.html ]; then
+            ACHADO=$(find . -name index.html -not -path "./node_modules/*" -not -path "./android/*" -not -path "./www/*" | head -1)
+            if [ -z "$ACHADO" ]; then
+              echo "ERRO: não encontrei o index.html no repositório. Envie o arquivo index.html (e manifest.json, sw.js, pasta icons) para o GitHub."
+              exit 1
+            fi
+            PASTA=$(dirname "$ACHADO")
+            echo "Usando arquivos de: $PASTA"
+            cp "$PASTA"/index.html www/
+            cp "$PASTA"/manifest.json "$PASTA"/sw.js www/ 2>/dev/null || true
+            cp -r "$PASTA"/icons www/ 2>/dev/null || true
+          fi
+          ls -R www
+
       - name: Instalar dependências
         run: npm install
 
       - name: Criar projeto Android
         run: |
           npx cap add android
+          if [ -f assets/icon.png ]; then
+            npx --yes @capacitor/assets@3 generate --android --assetPath assets
+          fi
           npx cap sync android
 
       - name: Compilar APK
