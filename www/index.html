@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Minhas vendas</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f6b5f">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<style>
+:root{--bg:#f2f6f5;--card:#fff;--ink:#12332f;--mute:#5d7773;--line:#d6e2df;--acc:#0f6b5f;--accink:#fff;--warn:#b57800;--warnbg:#fff4d6;--bad:#b3302a;--badbg:#fde5e3;--ok:#2a7a4b;--okbg:#e0f3e7;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1b19;--card:#162826;--ink:#e6f2ef;--mute:#92aca8;--line:#27403c;--acc:#3fb7a6;--accink:#06201c;--warn:#f0c24a;--warnbg:#3a2f10;--bad:#ff8f87;--badbg:#3d1c1a;--ok:#6fd195;--okbg:#173424}}
+:root[data-theme="dark"]{--bg:#0e1b19;--card:#162826;--ink:#e6f2ef;--mute:#92aca8;--line:#27403c;--acc:#3fb7a6;--accink:#06201c;--warn:#f0c24a;--warnbg:#3a2f10;--bad:#ff8f87;--badbg:#3d1c1a;--ok:#6fd195;--okbg:#173424}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:780px;margin:0 auto;padding:18px 16px 48px}
+h1{font-size:1.8rem;margin:0 0 12px;letter-spacing:-.02em}
+h2{font-size:1.1rem;margin:24px 0 10px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}}
+label{display:block;font-size:.85rem;color:var(--mute);margin-bottom:3px}
+input,textarea{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+textarea{min-height:90px;resize:vertical}
+button,a.btn{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:8px;text-decoration:none;display:inline-block}
+button.main,a.main{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.tag{font-size:.8rem;padding:2px 10px;border-radius:99px;white-space:nowrap;font-weight:600}
+.late{background:var(--badbg);color:var(--bad)}.today{background:var(--warnbg);color:var(--warn)}.soon{background:var(--bg);color:var(--mute);border:1px solid var(--line)}.paid{background:var(--okbg);color:var(--ok)}
+.alert{border-left:5px solid var(--bad)}.alert.today{border-left-color:var(--warn)}.alert.soon{border-left-color:var(--acc)}
+.msg{background:var(--bg);border-radius:8px;padding:10px;font-size:.92rem;white-space:pre-wrap;margin-top:8px;color:var(--mute)}
+.val{font-weight:700;font-variant-numeric:tabular-nums}
+.empty{color:var(--mute);text-align:center;padding:18px}
+.mute{color:var(--mute)}
+.total{display:flex;gap:22px;flex-wrap:wrap}
+.total b{display:block;font-size:1.3rem}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:16px;padding-bottom:4px}
+.tabs button{white-space:nowrap;border-radius:99px}
+.tabs button[aria-selected="true"]{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+.bar{height:10px;background:var(--acc);border-radius:5px;min-width:2px}
+.br{display:grid;grid-template-columns:70px 1fr 100px;gap:8px;align-items:center;margin:6px 0;font-size:.9rem}
+.par{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<h1>Minhas vendas</h1>
+<div class="tabs" role="tablist" id="tabs"></div>
+<div id="conteudo"></div>
+<p class="mute" style="text-align:center;margin-top:32px;font-size:.85rem">Criado por Luigi</p>
+</main>
+<datalist id="lp"></datalist><datalist id="lc"></datalist>
+
+<script>
+const K='vendas-v2';
+const MA='Olá, {nome}! Tudo bem? Passando para lembrar que a parcela {parcela} de {produto}, no valor de {valor}, vence em {vencimento}. Se preferir, pague pelo Pix: {pix}. Obrigado!';
+const MV='Olá, {nome}! Tudo bem? Notei que a parcela {parcela} de {produto}, no valor de {valor}, venceu em {vencimento} e ainda não consta como paga. Pode me confirmar quando consegue pagar? Pix: {pix}. Obrigado!';
+let db=null, aba='hoje';
+const $=id=>document.getElementById(id);
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const brl=n=>Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const hoje=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const parse=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const br=s=>parse(s).toLocaleDateString('pt-BR');
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function ler(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function gravar(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+function carregar(){
+  try{db=JSON.parse(ler(K))}catch(e){db=null}
+  if(!db){
+    db={produtos:[],clientes:[],vendas:[],cfg:{}};
+    try{ // migra dados da versão anterior
+      const old=JSON.parse(ler('vendas-v1')||'[]');
+      old.forEach(o=>{const d=parse(o.data);d.setDate(d.getDate()+Number(o.prazo));
+        db.vendas.push({id:o.id,produto:o.produto,cliente:o.comprador,tel:o.tel||'',valor:o.valor,data:o.data,parcelas:[{n:1,venc:iso(d),pago:!!o.pago}]});
+        if(!db.clientes.some(c=>c.nome===o.comprador))db.clientes.push({id:uid(),nome:o.comprador,tel:o.tel||''});
+        if(!db.produtos.some(p=>p.nome===o.produto))db.produtos.push({id:uid(),nome:o.produto,preco:o.valor});});
+      const m=ler('vendas-modelo-v1');if(m)db.cfg.mVenc=m;
+    }catch(e){}
+  }
+  db.cfg=Object.assign({pix:'',antes:3,mAntes:MA,mVenc:MV,notif:false},db.cfg);
+}
+function salvar(){gravar(K,JSON.stringify(db))}
+
+const vp=v=>Number(v.valor)/v.parcelas.length;
+const dias=p=>Math.round((parse(p.venc)-hoje())/864e5);
+const todas=()=>db.vendas.flatMap(v=>v.parcelas.map(p=>({v,p})));
+function st(p){
+  if(p.pago)return['Pago','paid'];
+  const d=dias(p);
+  if(d<0)return['Atrasada há '+(-d)+(d===-1?' dia':' dias'),'late'];
+  if(d===0)return['Vence hoje','today'];
+  return['Vence em '+d+(d===1?' dia':' dias'),'soon'];
+}
+function msg({v,p}){
+  const m=dias(p)>0?db.cfg.mAntes:db.cfg.mVenc;
+  return m.replaceAll('{nome}',v.cliente).replaceAll('{produto}',v.produto).replaceAll('{valor}',brl(vp(v)))
+   .replaceAll('{vencimento}',br(p.venc)).replaceAll('{parcela}',p.n+'/'+v.parcelas.length).replaceAll('{pix}',db.cfg.pix||'(informe sua chave nos Ajustes)');
+}
+function zap(x){const t=(x.v.tel||'').replace(/\D/g,'');const n=t&&t.length<=11?'55'+t:t;return 'https://wa.me/'+n+'?text='+encodeURIComponent(msg(x))}
+const pendentes=()=>todas().filter(x=>!x.p.pago&&dias(x.p)<=Number(db.cfg.antes)).sort((a,b)=>dias(a.p)-dias(b.p));
+
+/* ---------- abas ---------- */
+const ABAS=[['hoje','Hoje'],['vendas','Vendas'],['clientes','Clientes'],['produtos','Produtos'],['rel','Relatórios'],['ajustes','Ajustes']];
+function render(){
+  const n=pendentes().length;
+  $('tabs').innerHTML=ABAS.map(([k,t])=>'<button role="tab" aria-selected="'+(aba===k)+'" data-tab="'+k+'">'+t+(k==='hoje'&&n?' ('+n+')':'')+'</button>').join('');
+  $('lp').innerHTML=db.produtos.map(p=>'<option value="'+esc(p.nome)+'">').join('');
+  $('lc').innerHTML=db.clientes.map(c=>'<option value="'+esc(c.nome)+'">').join('');
+  $('conteudo').innerHTML=({hoje:tHoje,vendas:tVendas,clientes:tClientes,produtos:tProdutos,rel:tRel,ajustes:tAjustes})[aba]();
+}
+function totais(){
+  const t=todas();const ab=t.filter(x=>!x.p.pago);
+  const s=a=>a.reduce((z,x)=>z+vp(x.v),0);
+  return {rec:s(t.filter(x=>x.p.pago)),aber:s(ab),atr:s(ab.filter(x=>dias(x.p)<0))};
+}
+function cardCobranca(x){
+  const[t,c]=st(x.p);
+  return '<div class="card alert '+c+'"><div class="top"><div><b>'+esc(x.v.cliente)+'</b><br><span class="mute">'+esc(x.v.produto)+' · parcela '+x.p.n+'/'+x.v.parcelas.length+' · <span class="val">'+brl(vp(x.v))+'</span></span></div><span class="tag '+c+'">'+t+'</span></div><div class="msg">'+esc(msg(x))+'</div><div class="row">'+(x.v.tel?'<a class="btn main" target="_blank" rel="noopener" href="'+zap(x)+'">Enviar pelo WhatsApp</a>':'')+'<button data-copiar="'+x.v.id+'|'+x.p.n+'">Copiar mensagem</button><button data-pagar="'+x.v.id+'|'+x.p.n+'">Marcar como paga</button></div></div>';
+}
+function tHoje(){
+  const t=totais(),pd=pendentes();
+  return '<div class="card total"><div>A receber<b>'+brl(t.aber)+'</b></div><div>Em atraso<b style="color:var(--bad)">'+brl(t.atr)+'</b></div><div>Já recebido<b style="color:var(--ok)">'+brl(t.rec)+'</b></div></div>'
+   +'<h2>Cobranças para enviar'+(pd.length?' ('+pd.length+')':'')+'</h2>'
+   +(pd.length?pd.map(cardCobranca).join(''):'<div class="card empty">Nada para cobrar agora. Os avisos aparecem '+db.cfg.antes+' dias antes do vencimento e continuam enquanto a parcela não for paga.</div>');
+}
+function tVendas(){
+  const hj=iso(hoje());
+  const lista=[...db.vendas].sort((a,b)=>b.data<a.data?-1:1);
+  return '<div class="card"><b>Nova venda</b><div class="grid" style="margin-top:10px">'
+   +'<div><label for="produto">Produto</label><input id="produto" list="lp" placeholder="Digite ou escolha" autocomplete="off"></div>'
+   +'<div><label for="cliente">Comprador</label><input id="cliente" list="lc" placeholder="Digite ou escolha" autocomplete="off"></div>'
+   +'<div><label for="tel">WhatsApp (com DDD)</label><input id="tel" inputmode="tel" placeholder="81999998888"></div>'
+   +'<div><label for="valor">Valor total (R$)</label><input id="valor" inputmode="decimal" placeholder="150,00"></div>'
+   +'<div><label for="data">Data da compra</label><input id="data" type="date" value="'+hj+'"></div>'
+   +'<div><label for="prazo">Dias até a 1ª parcela</label><input id="prazo" type="number" min="0" value="30"></div>'
+   +'<div><label for="nparc">Número de parcelas (uma por mês)</label><input id="nparc" type="number" min="1" max="24" value="1"></div>'
+   +'</div><div class="row"><button class="main" data-act="addvenda">Salvar venda</button></div></div>'
+   +'<h2>Todas as vendas</h2>'
+   +(lista.length?lista.map(v=>'<div class="card"><div class="top"><div><b>'+esc(v.cliente)+'</b><br><span class="mute">'+esc(v.produto)+' · compra em '+br(v.data)+'</span></div><span class="val">'+brl(v.valor)+'</span></div>'
+     +v.parcelas.map(p=>{const[t,c]=st(p);return '<div class="par"><span>Parcela '+p.n+'/'+v.parcelas.length+' · '+brl(vp(v))+' · '+br(p.venc)+'</span><span><span class="tag '+c+'">'+t+'</span> '+(p.pago?'<button data-reabrir="'+v.id+'|'+p.n+'">Reabrir</button>':'<button data-pagar="'+v.id+'|'+p.n+'">Paga</button>')+'</span></div>'}).join('')
+     +'<div class="row"><button data-apagar="'+v.id+'">Excluir venda</button></div></div>').join(''):'<div class="card empty">Nenhuma venda ainda. Preencha o formulário acima.</div>');
+}
+function tClientes(){
+  return '<div class="card"><b>Novo cliente</b><div class="grid" style="margin-top:10px"><div><label for="cn">Nome</label><input id="cn"></div><div><label for="ct">WhatsApp (com DDD)</label><input id="ct" inputmode="tel"></div></div><div class="row"><button class="main" data-act="addcli">Salvar cliente</button></div></div><h2>Clientes</h2>'
+   +(db.clientes.length?[...db.clientes].sort((a,b)=>a.nome.localeCompare(b.nome)).map(c=>{
+     const ps=todas().filter(x=>x.v.cliente===c.nome),tot=db.vendas.filter(v=>v.cliente===c.nome).reduce((s,v)=>s+Number(v.valor),0);
+     const ab=ps.filter(x=>!x.p.pago).reduce((s,x)=>s+vp(x.v),0),at=ps.filter(x=>!x.p.pago&&dias(x.p)<0).length;
+     return '<div class="card"><div class="top"><div><b>'+esc(c.nome)+'</b><br><span class="mute">'+esc(c.tel||'sem telefone')+'</span></div>'+(at?'<span class="tag late">'+at+' em atraso</span>':'')+'</div><p class="mute" style="margin:8px 0 0">Total comprado: <span class="val">'+brl(tot)+'</span> · Em aberto: <span class="val">'+brl(ab)+'</span> · '+db.vendas.filter(v=>v.cliente===c.nome).length+' compra(s)</p><div class="row"><button data-delcli="'+c.id+'">Excluir</button></div></div>'}).join(''):'<div class="card empty">Clientes novos são adicionados automaticamente ao registrar uma venda.</div>');
+}
+function tProdutos(){
+  return '<div class="card"><b>Novo produto</b><div class="grid" style="margin-top:10px"><div><label for="pn">Nome</label><input id="pn"></div><div><label for="pp">Preço (R$)</label><input id="pp" inputmode="decimal"></div></div><div class="row"><button class="main" data-act="addprod">Salvar produto</button></div></div><h2>Produtos</h2>'
+   +(db.produtos.length?[...db.produtos].sort((a,b)=>a.nome.localeCompare(b.nome)).map(p=>{
+     const vs=db.vendas.filter(v=>v.produto===p.nome);
+     return '<div class="card"><div class="top"><div><b>'+esc(p.nome)+'</b><br><span class="mute">'+vs.length+' venda(s) · '+brl(vs.reduce((s,v)=>s+Number(v.valor),0))+' vendidos</span></div><span class="val">'+brl(p.preco||0)+'</span></div><div class="row"><button data-delprod="'+p.id+'">Excluir</button></div></div>'}).join(''):'<div class="card empty">Produtos novos são adicionados automaticamente ao registrar uma venda.</div>');
+}
+function tRel(){
+  const t=totais(),meses=[];
+  for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');meses.push([k,d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}),db.vendas.filter(v=>v.data.startsWith(k)).reduce((s,v)=>s+Number(v.valor),0)])}
+  const mx=Math.max(1,...meses.map(m=>m[2]));
+  const pr={};db.vendas.forEach(v=>pr[v.produto]=(pr[v.produto]||0)+Number(v.valor));
+  const top=Object.entries(pr).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const at={};todas().filter(x=>!x.p.pago&&dias(x.p)<0).forEach(x=>{at[x.v.cliente]=at[x.v.cliente]||[0,0];at[x.v.cliente][0]++;at[x.v.cliente][1]+=vp(x.v)});
+  const atl=Object.entries(at).sort((a,b)=>b[1][0]-a[1][0]);
+  return '<div class="card total"><div>Recebido<b>'+brl(t.rec)+'</b></div><div>A receber<b>'+brl(t.aber)+'</b></div><div>Em atraso<b style="color:var(--bad)">'+brl(t.atr)+'</b></div></div>'
+   +'<h2>Vendas por mês</h2><div class="card">'+meses.map(m=>'<div class="br"><span class="mute">'+esc(m[1])+'</span><div><div class="bar" style="width:'+(m[2]/mx*100)+'%"></div></div><span class="val">'+brl(m[2])+'</span></div>').join('')+'</div>'
+   +'<h2>Produtos mais vendidos</h2><div class="card">'+(top.length?top.map(([n,v])=>'<div class="par" style="border:0"><span>'+esc(n)+'</span><span class="val">'+brl(v)+'</span></div>').join(''):'<span class="mute">Sem dados ainda.</span>')+'</div>'
+   +'<h2>Clientes com parcelas em atraso</h2><div class="card">'+(atl.length?atl.map(([n,a])=>'<div class="par" style="border:0"><span>'+esc(n)+' · '+a[0]+' parcela(s)</span><span class="val">'+brl(a[1])+'</span></div>').join(''):'<span class="mute">Nenhum cliente em atraso.</span>')+'</div>';
+}
+function tAjustes(){
+  const c=db.cfg,sup='Notification' in window;
+  return '<div class="card"><div class="grid"><div><label for="pix">Sua chave Pix (entra na mensagem como {pix})</label><input id="pix" value="'+esc(c.pix)+'"></div><div><label for="antes">Avisar quantos dias antes do vencimento</label><input id="antes" type="number" min="0" value="'+c.antes+'"></div></div>'
+   +'<div style="margin-top:10px"><label for="mAntes">Mensagem de lembrete (antes do vencimento)</label><textarea id="mAntes">'+esc(c.mAntes)+'</textarea></div>'
+   +'<div style="margin-top:10px"><label for="mVenc">Mensagem de cobrança (vence hoje ou atrasada)</label><textarea id="mVenc">'+esc(c.mVenc)+'</textarea></div>'
+   +'<p class="mute" style="font-size:.85rem">Campos disponíveis: {nome} {produto} {valor} {vencimento} {parcela} {pix}</p><div class="row"><button class="main" data-act="salvarcfg">Salvar ajustes</button></div></div>'
+   +'<h2>Notificações</h2><div class="card"><p class="mute" style="margin-top:0">'+(sup?'Com a permissão ativa, o navegador avisa uma vez por dia quando você abre o app e há cobranças pendentes. Notificação com o app fechado exige um aplicativo instalado.':'Este navegador não suporta notificações.')+'</p>'+(sup?'<button data-act="notif">'+(Notification.permission==='granted'&&c.notif?'Notificações ativadas':'Ativar notificações')+'</button>':'')+'</div>'
+   +'<h2>Backup e planilha</h2><div class="card"><p class="mute" style="margin-top:0">Gere o backup, copie e guarde no WhatsApp, e-mail ou bloco de notas. Para restaurar em outro aparelho, cole o texto abaixo e toque em Restaurar.</p><textarea id="bk" placeholder="Backup ou planilha aparece aqui"></textarea><div class="row"><button data-act="bkgerar">Gerar backup</button><button data-act="csv">Gerar planilha (CSV)</button><button data-act="bkrest">Restaurar backup</button></div></div>';
+}
+
+/* ---------- ações ---------- */
+function achar(s){const[id,n]=s.split('|');const v=db.vendas.find(z=>z.id===id);return {v,p:v.parcelas.find(q=>q.n===Number(n))}}
+function num(s){return parseFloat(String(s).replace(/\./g,'').replace(',','.'))}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+  if(d.tab){aba=d.tab;render();return}
+  if(d.pagar){achar(d.pagar).p.pago=true;salvar();render()}
+  else if(d.reabrir){achar(d.reabrir).p.pago=false;salvar();render()}
+  else if(d.apagar){if(confirm('Excluir esta venda e suas parcelas?')){db.vendas=db.vendas.filter(v=>v.id!==d.apagar);salvar();render()}}
+  else if(d.delcli){if(confirm('Excluir este cliente? As vendas dele continuam registradas.')){db.clientes=db.clientes.filter(c=>c.id!==d.delcli);salvar();render()}}
+  else if(d.delprod){if(confirm('Excluir este produto? As vendas dele continuam registradas.')){db.produtos=db.produtos.filter(c=>c.id!==d.delprod);salvar();render()}}
+  else if(d.copiar){const t=msg(achar(d.copiar));(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>{b.textContent='Copiado!'}).catch(()=>{prompt('Copie a mensagem:',t)})}
+  else if(d.act)acao(d.act,b);
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='produto'){const p=db.produtos.find(x=>x.nome===e.target.value);if(p&&p.preco&&!$('valor').value)$('valor').value=String(p.preco).replace('.',',')}
+  if(e.target.id==='cliente'){const c=db.clientes.find(x=>x.nome===e.target.value);if(c&&c.tel&&!$('tel').value)$('tel').value=c.tel}
+});
+function acao(a,b){
+  if(a==='addvenda'){
+    const produto=$('produto').value.trim(),cliente=$('cliente').value.trim(),tel=$('tel').value.trim(),valor=num($('valor').value),data=$('data').value,prazo=Number($('prazo').value||0),np=Math.max(1,Math.min(24,Number($('nparc').value||1)));
+    if(!produto||!cliente||!data||isNaN(valor)){alert('Preencha produto, comprador, valor e data da compra.');return}
+    const parcelas=[];for(let i=0;i<np;i++){const d=parse(data);d.setDate(d.getDate()+prazo);d.setMonth(d.getMonth()+i);parcelas.push({n:i+1,venc:iso(d),pago:false})}
+    db.vendas.push({id:uid(),produto,cliente,tel,valor,data,parcelas});
+    if(!db.clientes.some(c=>c.nome===cliente))db.clientes.push({id:uid(),nome:cliente,tel});
+    if(!db.produtos.some(p=>p.nome===produto))db.produtos.push({id:uid(),nome:produto,preco:np?valor:0});
+    salvar();render();
+  }
+  if(a==='addcli'){const nome=$('cn').value.trim();if(!nome){alert('Informe o nome.');return}db.clientes.push({id:uid(),nome,tel:$('ct').value.trim()});salvar();render()}
+  if(a==='addprod'){const nome=$('pn').value.trim();if(!nome){alert('Informe o nome.');return}db.produtos.push({id:uid(),nome,preco:num($('pp').value)||0});salvar();render()}
+  if(a==='salvarcfg'){db.cfg.pix=$('pix').value.trim();db.cfg.antes=Math.max(0,Number($('antes').value||0));db.cfg.mAntes=$('mAntes').value.trim()||MA;db.cfg.mVenc=$('mVenc').value.trim()||MV;salvar();render();b=$('conteudo').querySelector('[data-act="salvarcfg"]');b.textContent='Salvo!'}
+  if(a==='notif'){try{Notification.requestPermission().then(r=>{db.cfg.notif=r==='granted';salvar();render()})}catch(e){alert('Não foi possível ativar as notificações neste navegador.')}}
+  if(a==='bkgerar'||a==='csv'){
+    let t;
+    if(a==='bkgerar')t=JSON.stringify(db);
+    else t='Comprador;Produto;Parcela;Valor;Vencimento;Situação\n'+todas().map(x=>[x.v.cliente,x.v.produto,x.p.n+'/'+x.v.parcelas.length,vp(x.v).toFixed(2).replace('.',','),br(x.p.venc),x.p.pago?'Paga':'Em aberto'].join(';')).join('\n');
+    $('bk').value=t;try{navigator.clipboard.writeText(t).then(()=>{b.textContent='Copiado!'})}catch(e){}$('bk').select();
+  }
+  if(a==='bkrest'){
+    try{const n=JSON.parse($('bk').value);if(!n||!Array.isArray(n.vendas))throw 0;if(!confirm('Isso substitui os dados deste aparelho. Continuar?'))return;db=n;carregarCfg();salvar();render()}catch(e){alert('Backup inválido. Cole aqui o texto gerado por Gerar backup.')}
+  }
+}
+function carregarCfg(){db.cfg=Object.assign({pix:'',antes:3,mAntes:MA,mVenc:MV,notif:false},db.cfg||{});db.produtos=db.produtos||[];db.clientes=db.clientes||[]}
+function notificar(){
+  try{const n=pendentes().length;if(!n||!db.cfg.notif||!('Notification' in window)||Notification.permission!=='granted')return;
+    const d=iso(hoje());if(ler('vendas-notif')===d)return;gravar('vendas-notif',d);
+    const t='Cobranças pendentes',o={body:n+(n===1?' cobrança para enviar hoje.':' cobranças para enviar hoje.'),icon:'icons/icon-192.png'};if(navigator.serviceWorker)navigator.serviceWorker.ready.then(r=>r.showNotification(t,o));else new Notification(t,o)}catch(e){}
+}
+carregar();render();notificar();
+if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
